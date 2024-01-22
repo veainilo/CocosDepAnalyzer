@@ -6,7 +6,6 @@ from fuzzywuzzy import process
 import tkinter as tk
 from tkinter import messagebox
 
-
 def setValue(key, value):
     with shelve.open("my_shelf") as db:
         db[key] = value
@@ -67,9 +66,8 @@ import concurrent.futures
 
 def process_file(filename):
     if filename.endswith(".meta"):
-        return None
-    dep = getDependency(filename)
-    return dep.uuid, dep
+        dep = getDependency(filename[:-5])
+        return dep.uuid, dep
 
 
 # 分析依赖关系的方法
