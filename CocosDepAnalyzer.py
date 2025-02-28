@@ -7,6 +7,7 @@ from fuzzywuzzy import process
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
+import tkinter.font as tkfont
 
 def setValue(key, value):
     with shelve.open("my_shelf") as db:
@@ -270,99 +271,245 @@ def showAllLeafs():
 
 if __name__ == "__main__":
     root = tk.Tk()
-
-    root.title("UUID Dependency Viewer")
-
-    path_label = tk.Label(root, text="输入项目资源目录:")
-    path_label.grid(row=0, column=0, sticky="ew")
-
-    asset_count_label = tk.Label(root, text="资源数目:")
-    asset_count_label.grid(row=0, column=1, sticky="ew")
-
-    path_entry = tk.Entry(root)
-    path_entry.grid(row=1, column=0, sticky="ew")
-    path_entry.insert(tk.END, getValue("path") or "")
-
-    if getValue("path"):
-        load_dependency()
-
-    load_button = tk.Button(root, text="加载资源目录依赖", command=load_dependency)
-    load_button.grid(row=2, column=0, sticky="ew")
-
-    clean_button = tk.Button(
-        root, text="清除缓存", command=lambda: os.remove("./dependencies.pkl")
-    )
-    clean_button.grid(row=1, column=1, sticky="ew")
-
-    show_root_button = tk.Button(
-        root, text="显示所有根节点", command=lambda: showAllRoots()
-    )
-    show_root_button.grid(row=2, column=1, sticky="ew")
-
-    show_leaf_button = tk.Button(
-        root, text="显示所有叶子节点", command=lambda: showAllLeafs()
-    )
-    show_leaf_button.grid(row=2, column=2, sticky="ew")
+    root.title("Cocos依赖分析器")
     
-    uuid_label = tk.Label(root, text="输入UUID:")
-    uuid_label.grid(row=3, column=0, sticky="ew")
-
-    uuid_entry = tk.Entry(root)
-    uuid_entry.grid(row=4, column=0, sticky="ew")
+    # 设置窗口最小尺寸
+    root.minsize(800, 600)
+    
+    # 定义VS Code深色主题配色方案
+    COLORS = {
+        'bg': '#1E1E1E',           # VS Code 主背景色
+        'frame_bg': '#252526',     # 侧边栏背景色
+        'primary': '#007ACC',      # VS Code 蓝色
+        'secondary': '#2D2D2D',    # 编辑器背景色
+        'accent': '#0098FF',       # 高亮蓝色
+        'text': '#D4D4D4',         # 主要文本色
+        'text_light': '#CCCCCC',   # 次要文本色
+        'border': '#3D3D3D',       # 边框颜色
+        'button_hover': '#2B8BD4', # 按钮悬停色
+        'selection': '#264F78',    # 选中背景色
+        'list_hover': '#2A2D2E',   # 列表悬停色
+        'title': '#569CD6'         # 标题文本色（VS Code 关键字蓝）
+    }
+    
+    # 设置窗口背景色
+    root.configure(bg=COLORS['bg'])
+    
+    # 配置主题和样式
+    style = ttk.Style()
+    style.theme_use('clam')
+    
+    # 配置全局字体
+    default_font = tkfont.Font(family="Consolas", size=10)  # VS Code 默认字体
+    heading_font = tkfont.Font(family="Consolas", size=11, weight='bold')
+    
+    # 自定义框架样式
+    style.configure('Custom.TFrame', 
+                   background=COLORS['bg'])
+    
+    style.configure('Custom.TLabelframe', 
+                   background=COLORS['frame_bg'],
+                   bordercolor=COLORS['border'],
+                   darkcolor=COLORS['border'],
+                   lightcolor=COLORS['border'])
+    
+    style.configure('Custom.TLabelframe.Label', 
+                   background=COLORS['frame_bg'],
+                   foreground=COLORS['title'],
+                   font=heading_font)
+    
+    # 自定义按钮样式
+    style.configure('Custom.TButton',
+                   background=COLORS['primary'],
+                   foreground=COLORS['text'],
+                   padding=(10, 5),
+                   font=default_font,
+                   borderwidth=0)
+    
+    style.map('Custom.TButton',
+              background=[('active', COLORS['button_hover']),
+                         ('pressed', COLORS['primary'])],
+              foreground=[('active', 'white')])
+    
+    # 自定义输入框样式
+    style.configure('Custom.TEntry',
+                   fieldbackground=COLORS['secondary'],
+                   foreground=COLORS['text'],
+                   padding=8,
+                   font=default_font,
+                   borderwidth=0)
+    
+    style.map('Custom.TEntry',
+              fieldbackground=[('focus', COLORS['secondary'])],
+              bordercolor=[('focus', COLORS['primary'])])
+    
+    # 自定义标签样式
+    style.configure('Custom.TLabel',
+                   background=COLORS['frame_bg'],
+                   foreground=COLORS['text'],
+                   font=default_font)
+    
+    # 自定义Checkbutton样式
+    style.configure('Custom.TCheckbutton',
+                   background=COLORS['frame_bg'],
+                   foreground=COLORS['text'],
+                   font=default_font)
+    
+    style.map('Custom.TCheckbutton',
+              background=[('active', COLORS['frame_bg'])],
+              foreground=[('active', COLORS['primary'])])
+    
+    # 创建主框架
+    main_frame = ttk.Frame(root, style='Custom.TFrame')
+    main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+    
+    # 顶部框架 - 路径输入区域
+    path_frame = ttk.LabelFrame(main_frame, text="项目配置", padding=15, style='Custom.TLabelframe')
+    path_frame.pack(fill=tk.X, padx=5, pady=5)
+    
+    path_label = ttk.Label(path_frame, text="项目资源目录:", style='Custom.TLabel')
+    path_label.grid(row=0, column=0, sticky="w", padx=5)
+    
+    path_entry = ttk.Entry(path_frame, style='Custom.TEntry')
+    path_entry.grid(row=0, column=1, sticky="ew", padx=5)
+    path_entry.insert(tk.END, getValue("path") or "")
+    
+    asset_count_label = ttk.Label(path_frame, text="资源数目:", style='Custom.TLabel')
+    asset_count_label.grid(row=0, column=2, sticky="w", padx=5)
+    
+    button_frame = ttk.Frame(path_frame, style='Custom.TFrame')
+    button_frame.grid(row=1, column=0, columnspan=3, sticky="ew", pady=10)
+    
+    load_button = ttk.Button(button_frame, text="加载资源目录依赖", style='Custom.TButton', command=load_dependency)
+    load_button.pack(side=tk.LEFT, padx=5)
+    
+    clean_button = ttk.Button(button_frame, text="清除缓存", style='Custom.TButton', command=lambda: os.remove("./dependencies.pkl"))
+    clean_button.pack(side=tk.LEFT, padx=5)
+    
+    show_root_button = ttk.Button(button_frame, text="显示所有根节点", style='Custom.TButton', command=showAllRoots)
+    show_root_button.pack(side=tk.LEFT, padx=5)
+    
+    show_leaf_button = ttk.Button(button_frame, text="显示所有叶子节点", style='Custom.TButton', command=showAllLeafs)
+    show_leaf_button.pack(side=tk.LEFT, padx=5)
+    
+    path_frame.columnconfigure(1, weight=1)
+    
+    # UUID搜索框架
+    search_frame = ttk.LabelFrame(main_frame, text="UUID搜索", padding=15, style='Custom.TLabelframe')
+    search_frame.pack(fill=tk.X, padx=5, pady=5)
+    
+    uuid_label = ttk.Label(search_frame, text="输入UUID:", style='Custom.TLabel')
+    uuid_label.grid(row=0, column=0, sticky="w", padx=5)
+    
+    uuid_entry = ttk.Entry(search_frame, style='Custom.TEntry')
+    uuid_entry.grid(row=0, column=1, sticky="ew", padx=5)
     uuid_entry.insert(tk.END, getValue("uuid") or "")
-
-    # 是否递归查找依赖
+    
+    searching_uuid_label = ttk.Label(search_frame, text="当前搜索:", style='Custom.TLabel')
+    searching_uuid_label.grid(row=0, column=2, sticky="w", padx=5)
+    
     recursive_var = tk.IntVar()
     recursive_var.set(0)
-    recursive_checkbutton = tk.Checkbutton(root, text="递归查找依赖", variable=recursive_var)
-    recursive_checkbutton.grid(row=4, column=1, sticky="ew")
-
-    searching_uuid_label = tk.Label(root, text="当前搜索:")
-    searching_uuid_label.grid(row=3, column=1, sticky="ew")
-
-    submit_button = tk.Button(root, text="显示依赖", command=show_dependency)
-    submit_button.grid(row=5, column=0, sticky="ew")
-
-    submit_by_dep_button = tk.Button(root, text="显示被依赖", command=show_by_dependency)
-    submit_by_dep_button.grid(row=5, column=1, sticky="ew")
-
+    recursive_checkbutton = ttk.Checkbutton(search_frame, text="递归查找依赖", variable=recursive_var, style='Custom.TCheckbutton')
+    recursive_checkbutton.grid(row=1, column=0, sticky="w", padx=5, pady=5)
+    
+    search_button_frame = ttk.Frame(search_frame, style='Custom.TFrame')
+    search_button_frame.grid(row=1, column=1, columnspan=2, sticky="e", pady=5)
+    
+    submit_button = ttk.Button(search_button_frame, text="显示依赖", style='Custom.TButton', command=show_dependency)
+    submit_button.pack(side=tk.LEFT, padx=5)
+    
+    submit_by_dep_button = ttk.Button(search_button_frame, text="显示被依赖", style='Custom.TButton', command=show_by_dependency)
+    submit_by_dep_button.pack(side=tk.LEFT, padx=5)
+    
+    search_frame.columnconfigure(1, weight=1)
+    
+    # 结果显示框架
+    result_frame = ttk.LabelFrame(main_frame, text="依赖关系", padding=15, style='Custom.TLabelframe')
+    result_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+    
     # 创建一个frame来包含文件列表和滚动条
-    frame = ttk.Frame(root)
-    frame.grid(row=6, column=0, columnspan=2, sticky='nsew')
-
-    # 设置frame的列权重和行权重，使得Listbox可以自适应宽度和高度
-    root.grid_columnconfigure(0, weight=1)
-    root.grid_rowconfigure(6, weight=1)
-
+    list_frame = ttk.Frame(result_frame, style='Custom.TFrame')
+    list_frame.pack(fill=tk.BOTH, expand=True)
+    
     # 创建一个滚动条
-    scrollbar = ttk.Scrollbar(frame)
+    scrollbar = ttk.Scrollbar(list_frame)
     scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-    # 创建一个Listbox来替换原有的Text控件
-    text1 = tk.Listbox(frame, yscrollcommand=scrollbar.set)
+    
+    # 创建一个Listbox
+    text1 = tk.Listbox(list_frame, 
+                       yscrollcommand=scrollbar.set,
+                       font=default_font,
+                       selectmode=tk.SINGLE,
+                       activestyle='none',
+                       background=COLORS['secondary'],
+                       foreground=COLORS['text'],
+                       selectbackground=COLORS['selection'],
+                       selectforeground='white',
+                       borderwidth=0,
+                       highlightthickness=1,
+                       highlightbackground=COLORS['border'],
+                       highlightcolor=COLORS['primary'])
     text1.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    
+    # 添加Listbox的鼠标悬停效果
+    def on_enter(event):
+        widget = event.widget
+        selection = widget.curselection()
+        if selection:
+            return  # 如果有选中项，不改变背景色
+        item_id = widget.nearest(event.y)
+        widget.selection_clear(0, tk.END)
+        widget.selection_set(item_id)
+        widget.itemconfig(item_id, bg=COLORS['list_hover'])
 
+    def on_leave(event):
+        widget = event.widget
+        selection = widget.curselection()
+        if selection:
+            return  # 如果有选中项，不改变背景色
+        for i in range(widget.size()):
+            widget.itemconfig(i, bg=COLORS['secondary'])
+
+    text1.bind('<Enter>', on_enter)
+    text1.bind('<Leave>', on_leave)
+    text1.bind('<Motion>', on_enter)
+    
+    # 美化滚动条
+    style.configure("Custom.Vertical.TScrollbar",
+                   background=COLORS['secondary'],
+                   bordercolor=COLORS['border'],
+                   arrowcolor=COLORS['text'],
+                   troughcolor=COLORS['bg'],
+                   width=10)  # VS Code风格的窄滚动条
+    
+    scrollbar.configure(style="Custom.Vertical.TScrollbar")
+    
     def on_selection_change(event):
         s = get_selected_item()
         if type(s) == str:
             match = matcher.search(s)
-            uuid = match.group(0)
-            uuid_entry.delete(0, tk.END)
-            uuid_entry.insert(tk.END, uuid)
-
-    # 绑定<<ListboxSelect>>事件到on_selection_change函数
+            if match:
+                uuid = match.group(0)
+                uuid_entry.delete(0, tk.END)
+                uuid_entry.insert(tk.END, uuid)
+    
+    # 绑定选择事件
     text1.bind('<<ListboxSelect>>', on_selection_change)
-
-    copy_text_button = tk.Button(
-        root, text="复制文本框内容", 
+    
+    # 底部工具栏
+    toolbar_frame = ttk.Frame(result_frame, style='Custom.TFrame')
+    toolbar_frame.pack(fill=tk.X, pady=(15,0))
+    
+    copy_text_button = ttk.Button(
+        toolbar_frame, 
+        text="复制列表内容", 
+        style='Custom.TButton',
         command=lambda: root.clipboard_append('\n'.join(text1.get(0, tk.END)))
     )
-    copy_text_button.grid(row=1, column=2, sticky="ew")
-
-    # 配置滚动条
-    scrollbar.config(command=text1.yview)
-
-    root.grid_columnconfigure(0, weight=1)
-    root.grid_columnconfigure(1, weight=1)
-
+    copy_text_button.pack(side=tk.RIGHT)
+    
+    if getValue("path"):
+        load_dependency()
+    
     root.mainloop()
