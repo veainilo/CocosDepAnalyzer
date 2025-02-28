@@ -459,6 +459,8 @@ if __name__ == "__main__":
         if selection:
             return  # 如果有选中项，不改变背景色
         item_id = widget.nearest(event.y)
+        if item_id < 0 or item_id >= widget.size():  # 检查索引是否有效
+            return
         widget.selection_clear(0, tk.END)
         widget.selection_set(item_id)
         widget.itemconfig(item_id, bg=COLORS['list_hover'])
